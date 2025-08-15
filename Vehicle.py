@@ -26,7 +26,9 @@ offset = 6  #allows error between pixel
 counter = 0
 
 while True:
-    ret,frame1= cap.read()
+    ret,frame1= cap.read()          # Ret will return true or false if it has found the frame or not.
+    if not ret:
+        break
     grey = cv2.cvtColor(frame1,cv2.COLOR_BGR2GRAY)
     blur = cv2.GaussianBlur(grey,(3,3),5)
     #applying on each frame
@@ -58,13 +60,16 @@ while True:
         cv2.circle(frame1,center,4,(0,0,255),-1)
         #cv2.imshow("Centers Visualisation", frame1)
    
-        for (x,y) in detector:
-            if y<(count_line_position+offset) and y>(count_line_position-offset):
-                counter+=1
-            cv2.line(frame1,(25,count_line_position),(1200,count_line_position),(0,127,255),3)
-            detector.remove((x,y))              
+        new_detector = []
+        for (x, y) in detector:
+            if count_line_position - offset <= y <= count_line_position + offset:
+                counter += 1
+                cv2.line(frame1, (25, count_line_position), (1200, count_line_position), (0,127,255), 3)
+            else:
+                new_detector.append((x, y))
+        detector = new_detector             
 
-            print("Vehilce Counter : "+ str(counter))
+        #print("Vehilce Counter : "+ str(counter))
 
     
     cv2.putText(frame1, "VEHICLE COUNTER : "+ str(counter), (450,70), cv2.FONT_HERSHEY_SIMPLEX, 2, (0,0,255), 5)
@@ -76,5 +81,5 @@ while True:
     if cv2.waitKey(10) == 13:
         break
 
-cv2.destroyAllWindow()
+cv2.destroyAllWindows()
 cap.release()
