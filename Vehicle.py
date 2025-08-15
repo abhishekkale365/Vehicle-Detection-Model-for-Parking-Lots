@@ -1,10 +1,14 @@
 import cv2
 import numpy as np
+import sys
 
 
 #getting web camera --> No. Since we have a video file
 cap = cv2.VideoCapture('video.mp4')
+output_file = open('output.txt', 'w')
 
+original_stdout = sys.stdout
+sys.stdout = output_file
 #min width rectangle
 min_width_rect=80 
 #min height rectangle
@@ -24,11 +28,13 @@ def center_handle(x,y,w,h):
 detector = []
 offset = 6  #allows error between pixel
 counter = 0
+frame_idx = 0
 
 while True:
     ret,frame1= cap.read()          # Ret will return true or false if it has found the frame or not.
     if not ret:
         break
+    frame_idx += 1
     grey = cv2.cvtColor(frame1,cv2.COLOR_BGR2GRAY)
     blur = cv2.GaussianBlur(grey,(3,3),5)
     #applying on each frame
@@ -56,18 +62,28 @@ while True:
 
         center = center_handle(x,y,w,h)
         detector.append(center)
-        print(detector)
+        print(f"[f{frame_idx}] + added center: ({center[0]},{center[1]})  | detector size now: {len(detector)}")
+        #print(detector)
         cv2.circle(frame1,center,4,(0,0,255),-1)
         #cv2.imshow("Centers Visualisation", frame1)
    
         new_detector = []
-        for (x, y) in detector:
-            if count_line_position - offset <= y <= count_line_position + offset:
+        band_lo = count_line_position - offset
+        band_hi = count_line_position + offset
+        print(f"[f{frame_idx}] counting band: y in [{band_lo}, {band_hi}]")
+
+        for (cx, cy) in detector:
+            if band_lo <= cy <= band_hi:
                 counter += 1
                 cv2.line(frame1, (25, count_line_position), (1200, count_line_position), (0,127,255), 3)
+                cv2.rectangle(frame1, (25, count_line_position - offset), (1200, count_line_position + offset), (0, 255, 255), 1)  # thin yellow band
+                print(f"[f{frame_idx}]  (tick) counted center ({cx},{cy}) -> counter={counter}")
             else:
-                new_detector.append((x, y))
-        detector = new_detector             
+                new_detector.append((cx, cy))
+                print(f"[f{frame_idx}] --> keep center   ({cx},{cy}) for next frame")
+
+        detector = new_detector
+        print(f"[f{frame_idx}] detector kept: {len(detector)} items\n")
 
         #print("Vehilce Counter : "+ str(counter))
 
@@ -83,3 +99,5 @@ while True:
 
 cv2.destroyAllWindows()
 cap.release()
+sys.stdout = original_stdout
+output_file.close()
